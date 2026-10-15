@@ -1,0 +1,5 @@
+# Local lab tooling (not part of the shared lab)
+lab_manager.py
+offline_installer/
+remote_deploy.sh
+machines/*/deploy.sh

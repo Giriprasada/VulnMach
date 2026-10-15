@@ -20,3 +20,9 @@ ngrok-vulncorp.yml
 # OS
 .DS_Store
 Thumbs.db
+
+# Local lab tooling (not part of the shared lab)
+lab_manager.py
+offline_installer/
+remote_deploy.sh
+machines/*/deploy.sh

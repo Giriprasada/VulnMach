@@ -65,14 +65,35 @@ cd "$SCRIPT_DIR"
 # ── Step 1: Install Docker ───────────────────────────────────────
 
 install_docker() {
+    OFFLINE_SCRIPT=""
+    for candidate in "$SCRIPT_DIR/offline_installer/install_offline_docker.sh" \
+                     "$SCRIPT_DIR/../offline_installer/install_offline_docker.sh" \
+                     "/opt/offline_installer/install_offline_docker.sh"; do
+        if [ -f "$candidate" ]; then
+            OFFLINE_SCRIPT="$candidate"
+            break
+        fi
+    done
+
     if command -v docker &> /dev/null; then
         log_info "Docker is already installed: $(docker --version)"
+        if [ -n "$OFFLINE_SCRIPT" ]; then
+            # Still load any offline image tarballs if present
+            bash "$OFFLINE_SCRIPT" || true
+        fi
         return 0
     fi
 
     log_step "Installing Docker..."
 
-    # Detect distro
+    if [ -n "$OFFLINE_SCRIPT" ]; then
+        log_info "Found offline Docker installer at: $OFFLINE_SCRIPT"
+        log_step "Running 100% offline Docker & Compose installation..."
+        bash "$OFFLINE_SCRIPT"
+        return 0
+    fi
+
+    # Detect distro for online fallback
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         DISTRO=$ID
@@ -114,8 +135,8 @@ install_docker() {
             ;;
     esac
 
-    systemctl start docker
-    systemctl enable docker
+    systemctl start docker 2>/dev/null || true
+    systemctl enable docker 2>/dev/null || true
     log_info "Docker installed successfully"
 }
 
@@ -136,8 +157,26 @@ install_docker_compose() {
         return 0
     fi
 
-    log_step "Installing docker-compose (standalone)..."
-    COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d'"' -f4)
+    log_step "Installing docker-compose..."
+    OFFLINE_SCRIPT=""
+    for candidate in "$SCRIPT_DIR/offline_installer/install_offline_docker.sh" \
+                     "$SCRIPT_DIR/../offline_installer/install_offline_docker.sh" \
+                     "/opt/offline_installer/install_offline_docker.sh"; do
+        if [ -f "$candidate" ]; then
+            OFFLINE_SCRIPT="$candidate"
+            break
+        fi
+    done
+
+    if [ -n "$OFFLINE_SCRIPT" ]; then
+        log_info "Running offline Compose installer..."
+        bash "$OFFLINE_SCRIPT"
+        if docker compose version &> /dev/null; then COMPOSE_CMD="docker compose"; return 0; fi
+        if command -v docker-compose &> /dev/null; then COMPOSE_CMD="docker-compose"; return 0; fi
+    fi
+
+    log_step "Installing docker-compose (standalone online fallback)..."
+    COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d'"' -f4 || echo "v2.27.0")
     curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
         -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose

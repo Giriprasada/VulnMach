@@ -35,5 +35,27 @@ Every machine in the VulnCorp Enterprise testbed is organized as a self-containe
    chmod +x deploy.sh
    sudo ./deploy.sh
    ```
-5. The script automatically installs Docker & Compose if needed, builds the container image with all intentional vulnerabilities, and starts all services in the background.
+5. The script automatically detects if `offline_installer/` exists to perform a **100% offline Docker & Compose installation** without requiring internet access.
 6. **SSH access** is on port **2222** (not 22) to avoid conflicts with the Debian host's own SSH service.
+
+---
+
+## 📦 Offline / Air-Gapped Installation Guide
+
+If your lab machines are on an isolated, air-gapped network with no internet access:
+
+1. **Pre-download Docker binaries & images** on an internet-connected machine:
+   ```bash
+   chmod +x offline_installer/download_offline_assets.sh
+   ./offline_installer/download_offline_assets.sh
+   ```
+   *(Or on Windows: `.\offline_installer\download_offline_assets.ps1`)*
+
+2. **Copy the entire `VulnMach` workspace** (including `offline_installer/`) to the offline VM via USB or SCP.
+
+3. **Deploy as normal**:
+   ```bash
+   sudo ./deploy.sh
+   ```
+   `deploy.sh` will install Docker Engine, Docker Compose, and load all container images 100% offline!
+
