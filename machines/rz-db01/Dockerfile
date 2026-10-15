@@ -8,9 +8,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     mysql-server \
-    postgresql \
-    postgresql-contrib \
-    redis-server \
     openssh-server \
     python3 python3-pip \
     curl wget net-tools vim sudo \
@@ -23,6 +20,6 @@ RUN chmod +x /opt/setup/*.sh /entrypoint.sh
 RUN mkdir -p /var/run/sshd && ssh-keygen -A
 RUN /opt/setup/setup_db.sh
 
-EXPOSE 22 3306 5432 6379
+EXPOSE 22 3306
 
 ENTRYPOINT ["/entrypoint.sh"]
