@@ -1,6 +1,6 @@
 # VulnCorp — Machine 9: int-dev01
 # DEPLOY: git clone <repo> && cd int-dev01 && sudo ./deploy.sh
-# ACCESS: http://<VM_IP>        (GitLab — root/gitlab_root_pass)
+# ACCESS: http://192.168.10.99        (GitLab)
 #         http://<VM_IP>:8080   (Jenkins — no auth)
 #         curl http://<VM_IP>:2375/version  (Docker API — no TLS!)
 #         ssh developer@<VM_IP> -p 2222     (developer/dev123)
@@ -33,9 +33,9 @@ services:
     environment:
       - VULNCORP_ENV=lab
 
-  # ── GitLab CE 14.0.12 — CVE-2021-22205 (RCE via ExifTool) ──────────────────
+  # ── GitLab CE 13.10.2 — last 13.10 build before the CVE-2021-22205 fix (13.10.3)
   vulncorp-gitlab:
-    image: gitlab/gitlab-ce:14.0.12-ce.0
+    image: gitlab/gitlab-ce:13.10.2-ce.0
     container_name: vulncorp-gitlab
     hostname: vulncorp-gitlab
     restart: unless-stopped
@@ -43,8 +43,7 @@ services:
       - "0.0.0.0:80:80"         # GitLab HTTP
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url 'http://localhost'
-        gitlab_rails['initial_root_password'] = 'gitlab_root_pass'
+        external_url 'http://192.168.10.99'
         gitlab_rails['initial_shared_runners_registration_token'] = 'disabled'
         nginx['listen_port'] = 80
         nginx['listen_https'] = false
