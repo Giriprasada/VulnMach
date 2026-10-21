@@ -58,6 +58,7 @@ ssh-keygen -t rsa -b 2048 -f /var/ftp/pub/keys/backup_rsa -N "" -C "sysadmin@vul
 echo "VULN{anon_ftp_wr1t3}"                    > /var/ftp/pub/flag1.txt
 echo "VULN{ssh_k3y_l3ak3d}"                    > /var/ftp/pub/keys/flag.txt
 echo "VULN{ftp_s3rv3r_r00t3d_m4ch1n3_3}"       > /root/root.txt
-chown -R ftp:ftp /var/ftp 2>/dev/null || true
+chmod -R a+rX /var/ftp
+chown -R www-data:www-data /var/ftp 2>/dev/null || chown -R ftp:ftp /var/ftp 2>/dev/null || true
 
-echo "[+] FTP breadcrumbs planted!"
+echo "[+] FTP breadcrumbs planted on host at /var/ftp/pub/"

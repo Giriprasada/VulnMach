@@ -1,0 +1,13 @@
+[Unit]
+Description=VulnCorp host vsftpd 2.3.4 lab (CVE-2011-2523)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/sbin/vsftpd-234-lab.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

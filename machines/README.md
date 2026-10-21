@@ -12,7 +12,7 @@ Every machine in the VulnCorp Enterprise testbed is organized as a self-containe
 |---|--------|--------------------|------|----|----------|----------------------|
 | 1 | `../` *(root)* | `vulncorp-web01` | DMZ (`10.10.10.10`) | Debian 13 | 2222 | `sudo ./deploy.sh` |
 | 2 | `dmz-mail01/` | `vulncorp-mail01` | DMZ (`10.10.10.20`) | Debian 13 | 2222 | `sudo ./deploy.sh` |
-| 3 | `dmz-ftp01/` | `vulncorp-ftp01` | DMZ (`10.10.10.30`) | Debian 13 | 2222 | `sudo ./deploy.sh` |
+| 3 | `dmz-ftp01/` | `vulncorp-ftp01` | DMZ (`10.10.10.30`) | Debian 13 | 22 (host) | `sudo ./deploy.sh` **(host / docker-less)** |
 | 4 | `rz-db01/` | `vulncorp-db01` | Restricted (`172.16.0.10`) | Ubuntu 24 | 2222 | `sudo ./deploy.sh` |
 | 5 | `rz-vpn01/` | `vulncorp-vpn01` | Restricted (`172.16.0.20`) | Ubuntu 24 | 2222 | `sudo ./deploy.sh` |
 | 6 | `rz-monitor01/` | `vulncorp-monitor01` | Restricted (`172.16.0.30`) | Debian 13 | 2222 | `sudo ./deploy.sh` |

@@ -1,18 +1,16 @@
 #!/bin/bash
+# LEGACY Docker entrypoint — prefer host: sudo ./deploy.sh
 echo "============================================="
-echo "  VulnCorp FTP Server (dmz-ftp01)            "
+echo "  VulnCorp FTP Server (dmz-ftp01) LEGACY Docker"
+echo "  Prefer HOST deploy: sudo ./deploy.sh"
 echo "============================================="
 echo "[*] Starting SSH..."
-service ssh start
-echo "[*] Starting vsftpd (Anonymous Write)..."
-service vsftpd start
-echo "[*] Starting ProFTPD (mod_copy / CVE-2015-3306)..."
-service proftpd start
+service ssh start || true
 echo "[*] Starting Apache..."
-service apache2 start
-echo ""
-echo "  vsftpd: ftp localhost 21     (anon login + write)"
-echo "  ProFTPD: ftp localhost 2121  (SITE CPFR/CPTO RCE)"
-echo "  ⚠️  FOR EDUCATIONAL USE ONLY"
+service apache2 start || true
+echo "[*] For CVE labs on the host, use systemd units:"
+echo "      vsftpd-234-lab.service  (port 21 / 6200)"
+echo "      proftpd-lab.service     (port 2121)"
+echo "  EDUCATIONAL USE ONLY"
 echo "============================================="
 tail -f /dev/null

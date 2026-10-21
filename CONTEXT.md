@@ -17,7 +17,7 @@ The lab spans **3 isolated network security zones** across **11 dedicated virtua
  🌐 DMZ Zone (10.10.10.0/24 — vboxnet0)
     • dmz-web01   (10.10.10.10) — Flask Web Portal, SQLi, Command Injection, File Upload
     • dmz-mail01  (10.10.10.20) — Postfix SMTP Open Relay, Dovecot Plaintext IMAP/POP3
-    • dmz-ftp01   (10.10.10.30) — vsftpd Anonymous Write, ProFTPD mod_copy (CVE-2015-3306)
+    • dmz-ftp01   (10.10.10.30) — HOST: vsftpd 2.3.4 lab (CVE-2011-2523 :21/:6200), ProFTPD 1.3.5 mod_copy (CVE-2015-3306 :2121)
 
  🛡️ Restricted Zone (172.16.0.0/24 — vboxnet1)
     • rz-db01     (172.16.0.10) — MySQL (root/toor), PostgreSQL (COPY RCE), Redis (No Auth)
@@ -60,7 +60,7 @@ webserver/
 └── machines/                          # Standalone deployment packages for Machines 2 to 11
     ├── README.md                      # Master directory of all machine deployment packages
     ├── dmz-mail01/                    # Machine 2: Postfix, Dovecot, Open Relay, Mailboxes
-    ├── dmz-ftp01/                     # Machine 3: vsftpd Anon Write, ProFTPD mod_copy RCE
+    ├── dmz-ftp01/                     # Machine 3: HOST docker-less (CVE-2011-2523 + CVE-2015-3306)
     ├── rz-db01/                       # Machine 4: MySQL 8, PostgreSQL 16, Redis Server
     ├── rz-vpn01/                      # Machine 5: Flask VPN Admin Portal, Path Traversal
     ├── rz-monitor01/                  # Machine 6: Nagios 4 Core, SNMPD Daemon

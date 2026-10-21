@@ -1,59 +1,16 @@
 #!/bin/bash
-# setup_ftp.sh — vsftpd + ProFTPD vulnerability configuration
-set -e
+# setup_ftp.sh — host FTP vulnerability configuration (docker-less).
+# Prefer: sudo ./deploy.sh from machines/dmz-ftp01/
+set -euo pipefail
 
-echo "[+] Configuring vsftpd (Anonymous Write)..."
-cat > /etc/vsftpd.conf << 'EOF'
-listen=YES
-listen_ipv6=NO
-# ANONYMOUS WRITE — intentional vulnerability
-anonymous_enable=YES
-anon_upload_enable=YES
-anon_mkdir_write_enable=YES
-anon_other_write_enable=YES
-write_enable=YES
-local_enable=YES
-local_umask=022
-anon_root=/var/ftp
-dirmessage_enable=YES
-xferlog_enable=YES
-connect_from_port_20=YES
-ftpd_banner=VulnCorp FTP Server v2.3.4 — Internal Use Only
-chroot_local_user=NO
-pasv_enable=YES
-pasv_min_port=40000
-pasv_max_port=40100
-seccomp_sandbox=NO
-EOF
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "[+] Configuring ProFTPD with mod_copy (CVE-2015-3306)..."
-cat > /etc/proftpd/proftpd.conf << 'EOF'
-ServerName "VulnCorp ProFTPD"
-ServerType standalone
-DefaultServer on
-Port 2121
-# mod_copy enables SITE CPFR/CPTO — allows unauthenticated file copy (RCE vector)
-LoadModule mod_copy.c
-<Anonymous /var/ftp>
-  User ftp
-  Group nogroup
-  RequireValidShell off
-  UserAlias anonymous ftp
-  <Limit WRITE>
-    AllowAll
-  </Limit>
-</Anonymous>
-EOF
+echo "[+] dmz-ftp01 host FTP setup"
+bash "$SCRIPT_DIR/install_proftpd_135.sh"
+bash "$SCRIPT_DIR/setup_host_services.sh"
+bash "$SCRIPT_DIR/setup_breadcrumbs.sh"
 
-echo "[+] Configuring weak SSH..."
-mkdir -p /var/run/sshd
-cat > /etc/ssh/sshd_config << 'EOF'
-Port 22
-PermitRootLogin yes
-PasswordAuthentication yes
-MaxAuthTries 10
-UsePAM yes
-Subsystem sftp /usr/lib/openssh/sftp-server
-EOF
-
-echo "[+] FTP service setup complete!"
+echo "[+] FTP service setup complete (host systemd)"
+echo "    Port 21   = vsftpd-234-lab (CVE-2011-2523)"
+echo "    Port 2121 = ProFTPD 1.3.5 mod_copy (CVE-2015-3306)"
+echo "    Port 80   = Apache DocumentRoot /var/www/html"

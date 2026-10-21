@@ -1,50 +1,46 @@
 #!/bin/bash
 # ================================================================
-# VulnCorp — Machine 3: dmz-ftp01 One-Command Deploy Script
+# VulnCorp - Machine 3: dmz-ftp01
+# Prefers OFFLINE pack when offline/proftpd tarball exists.
+#   sudo ./deploy.sh              # auto: offline if ready, else online
+#   sudo ./deploy-offline.sh      # force offline
+#   sudo ./prepare-offline.sh     # build offline/ on an online box
 # ================================================================
-set -e
-echo "============================================="
-echo "  Deploying VulnCorp FTP Server (dmz-ftp01)  "
-echo "============================================="
+set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Check for offline Docker installer package
-OFFLINE_SCRIPT=""
-for candidate in "$SCRIPT_DIR/../../offline_installer/install_offline_docker.sh" \
-                 "$SCRIPT_DIR/../offline_installer/install_offline_docker.sh" \
-                 "$SCRIPT_DIR/offline_installer/install_offline_docker.sh" \
-                 "/opt/offline_installer/install_offline_docker.sh"; do
-    if [ -f "$candidate" ]; then
-        OFFLINE_SCRIPT="$candidate"
-        break
-    fi
-done
-
-if [ -n "$OFFLINE_SCRIPT" ]; then
-    echo "[*] Found offline Docker installer package at: $OFFLINE_SCRIPT"
-    bash "$OFFLINE_SCRIPT" || true
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "Run as root: sudo ./deploy.sh" >&2
+  exit 1
 fi
 
-if ! command -v docker &> /dev/null; then
-    echo "[*] Installing Docker (online fallback)..."
-    curl -fsSL https://get.docker.com | sh
-    systemctl enable --now docker 2>/dev/null || true
+ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$ROOT_DIR"
+chmod +x ./*.sh setup/*.sh files/vsftpd-234-lab.py 2>/dev/null || true
+
+TGZ="$ROOT_DIR/offline/proftpd-1.3.5-linux-amd64.tar.gz"
+if [[ -f "$TGZ" ]]; then
+  echo "[*] offline/proftpd tarball found — using OFFLINE deploy"
+  exec bash "$ROOT_DIR/deploy-offline.sh"
 fi
 
-if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
-    echo "[*] Installing Docker Compose plugin..."
-    apt-get update -qq && apt-get install -y docker-compose-v2 || true
+echo "============================================="
+echo "  VulnCorp dmz-ftp01 - ONLINE HOST deploy"
+echo "  (no offline pack found; needs internet)"
+echo "============================================="
+echo "  Tip: on an online box run: sudo ./prepare-offline.sh"
+echo "       then copy machines/dmz-ftp01/ to the lab VM."
+echo "============================================="
+
+if command -v docker >/dev/null 2>&1; then
+  docker stop vulncorp-ftp01 2>/dev/null || true
 fi
 
-echo "[*] Building and starting dmz-ftp01 container..."
-docker compose up -d --build
+bash setup/install_proftpd_135.sh
+bash setup/setup_host_services.sh
+bash setup/setup_breadcrumbs.sh
 
-echo ""
-echo "============================================="
-echo "  dmz-ftp01 DEPLOYED SUCCESSFULLY!           "
-echo "============================================="
-echo "  vsftpd (Anon Write): Port 21"
-echo "  ProFTPD (mod_copy):  Port 2121"
-echo "  SSH:                 Port 22"
-echo "============================================="
+echo
+ss -lntp | grep -E ':21 |:2121|:80 |:6200' || true
+echo
+echo "ONLINE deploy done. To make an offline pack from this host:"
+echo "  sudo ./prepare-offline.sh"

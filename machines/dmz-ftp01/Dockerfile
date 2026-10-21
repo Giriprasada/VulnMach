@@ -1,8 +1,11 @@
+# LEGACY image — prefer host deploy: sudo ./deploy.sh
+# See README.md (docker-less HOST install).
 FROM debian:bookworm-slim
 
 LABEL maintainer="VulnCorp Lab"
-LABEL description="dmz-ftp01 — Intentionally Vulnerable FTP Server (Anon Write, ProFTPD mod_copy)"
+LABEL description="LEGACY dmz-ftp01 Docker image — use host systemd deploy instead"
 LABEL machine="3"
+LABEL status="legacy"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -15,22 +18,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget net-tools vim sudo ftp \
     && rm -rf /var/lib/apt/lists/*
 
-# Create FTP user
 RUN useradd -m -s /bin/bash ftpuser && echo "ftpuser:ftp123" | chpasswd
-
-# Directories for FTP pub
 RUN mkdir -p /var/ftp/pub/keys && chmod -R 777 /var/ftp
 
-# Copy setup scripts
 COPY setup/ /opt/setup/
+COPY files/ /opt/files/
 COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /opt/setup/*.sh /entrypoint.sh
-RUN /opt/setup/setup_ftp.sh
-RUN /opt/setup/setup_breadcrumbs.sh
 
+# Host scripts expect to run on a real VM; Docker entrypoint is legacy-only.
 RUN mkdir -p /var/run/sshd && ssh-keygen -A
 
-EXPOSE 21 22 80 2121 40000-40100
+EXPOSE 21 22 80 2121 6200 40000-40100
 
 ENTRYPOINT ["/entrypoint.sh"]

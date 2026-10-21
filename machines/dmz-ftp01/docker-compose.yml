@@ -1,10 +1,11 @@
 version: '3.8'
 # ================================================================
-# VulnCorp — Machine 3: dmz-ftp01
-# DEPLOY: git clone <repo> && cd dmz-ftp01 && sudo ./deploy.sh
-# ACCESS: ftp <VM_IP> 21 (anonymous login)
-#         ftp <VM_IP> 2121 (ProFTPD mod_copy)
-# ⚠️  FOR EDUCATIONAL / LAB USE ONLY
+# LEGACY — Docker deploy is NO LONGER the primary path.
+# Prefer HOST install:
+#   cd machines/dmz-ftp01 && sudo ./deploy.sh
+#
+# Kept only for reference. Do not run alongside the host
+# systemd units (port 21 / 2121 / 80 conflicts).
 # ================================================================
 services:
   dmz-ftp01:
