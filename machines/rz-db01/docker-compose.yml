@@ -1,13 +1,17 @@
 # VulnCorp — Machine 4: rz-db01
-# Ubuntu Dockerfile builds only this MySQL/SSH image.
-# PostgreSQL and Redis use the pinned images below; they are not built from that Dockerfile.
+# MySQL/SSH: prefer host install for this lab. The rz-db01 image below is optional/legacy.
+# PostgreSQL 11.2 + Redis 7.2.5 stay in Docker with network_mode: host so:
+#   - same outbound reachability as the host (other lab machines)
+#   - banners on host :5432 / :6379 for OpenVAS (CVE-2019-9193 / CVE-2024-31449)
 # Copy .env.example to .env before starting. Do not commit .env.
 services:
+  # Optional legacy MySQL+SSH container — not required when MySQL runs on the host.
   rz-db01:
     build: .
     image: rz-db01-mysql:local
     container_name: vulncorp-db01
     hostname: vulncorp-db01
+    profiles: ["legacy-mysql"]
     env_file:
       - .env
     environment:
@@ -30,36 +34,49 @@ services:
       start_period: 40s
     restart: unless-stopped
 
-  # PostgreSQL 11.2 is the last build in the CVE-2019-9193 range (9.3 through 11.2).
-  # Digest recorded from the pulled library/postgres:11.2 image. Tag stays 11.2.
+  # PostgreSQL 11.2 — last build in CVE-2019-9193 OpenVAS range (9.3–11.2).
+  # network_mode: host → listens on host 0.0.0.0:5432 (banner = 11.2) + host routing.
   postgres:
     image: postgres:11.2@sha256:85d0c745dc4f4627184da8945a36ac773762ec5d2ba1c1821cc7334b736e6e00
     container_name: vulncorp-postgres
+    network_mode: host
     env_file:
       - .env
+    environment:
+      # Ensure TCP accept from all interfaces (OpenVAS remote detect)
+      POSTGRES_HOST_AUTH_METHOD: md5
+    command:
+      - postgres
+      - -c
+      - listen_addresses=*
+      - -c
+      - password_encryption=md5
     volumes:
       - ./setup/postgres_init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "0.0.0.0:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -h 127.0.0.1"]
       interval: 10s
       timeout: 5s
       retries: 10
     restart: unless-stopped
 
-  # Upstream 7.2.5: last 7.2 build before the CVE-2024-31449 fix (7.2.6).
-  # Ubuntu's redis-server package stays at banner 7.0.15 and is already patched,
-  # so OpenVAS does not report this CVE against it.
+  # Redis 7.2.5 — last 7.2 before CVE-2024-31449 fix (7.2.6).
+  # network_mode: host → listens on host 0.0.0.0:6379 (banner = 7.2.5).
   redis:
     image: redis:7.2.5@sha256:3aaec283e6e593bde528077d60280ac1589887067a39273348860837c9346d7e
     container_name: vulncorp-redis
-    command: ["redis-server", "--bind", "0.0.0.0", "--protected-mode", "no"]
-    ports:
-      - "0.0.0.0:6379:6379"
+    network_mode: host
+    command:
+      - redis-server
+      - --bind
+      - 0.0.0.0
+      - --protected-mode
+      - "no"
+      - --port
+      - "6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-h", "127.0.0.1", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10

