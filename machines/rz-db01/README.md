@@ -2,7 +2,7 @@
 
 > ⚠️ **FOR EDUCATIONAL / LAB USE ONLY — NEVER EXPOSE TO THE INTERNET**
 
-Deploy target: **192.168.10.101** (lab example; live host may differ, e.g. `192.168.80.37`). MySQL and SSH run on the **host**. PostgreSQL and Redis stay in Docker with **`network_mode: host`** so they share the host’s routes (reach other lab machines) and expose version banners on host **`:5432`** / **`:6379`** for OpenVAS.
+Deploy target: **192.168.10.101** (lab example; live host may differ, e.g. `192.168.80.37`). SSH runs on the **host**. PostgreSQL and Redis stay in Docker with **`network_mode: host`** so they share the host’s routes (reach other lab machines) and expose version banners on host **`:5432`** / **`:6379`** for OpenVAS. One host MySQL listens on **3306**. There is no second MySQL and no port **2222**. Host MySQL uses **`root` / `root`** so the OpenVAS Community check can log in.
 
 Services OpenVAS can match on this host:
 
@@ -10,15 +10,15 @@ Services OpenVAS can match on this host:
 | --- | --- | --- | --- |
 | CVE-2019-9193 | PostgreSQL | 5432 | **11.2** (range 9.3–11.2) |
 | CVE-2024-31449 | Redis | 6379 | **7.2.5** (range 7.2.0–7.2.5) |
-| CVE-1999-0502 | MySQL | 3306 | Default creds (`root` / `toor`) — add custom OpenVAS login if feed list lacks `toor` |
+| CVE-1999-0502 | MySQL | 3306 | Default creds `root` / `root`. Community NVT `1.3.6.1.4.1.25623.1.0.103551` tries empty, `root`, `mysql`, and `password`. It does not try `toor`. |
 
-PostgreSQL and Redis use pinned images. Copy `.env.example` to `.env` and set Postgres passwords before `docker compose up`. Host SSH is on port **22** (root login allowed). Inner container SSH (`2222`) is not used.
+PostgreSQL and Redis use pinned images. Copy `.env.example` to `.env` and set Postgres passwords before `docker compose up`. Host SSH is on port **22** (root login allowed).
 
 ---
 
 ## Deploy on the lab host
 
-Copy `machines/rz-db01` to the host (e.g. `/opt/rz-db01` or `/home/debian/rz-db01`). Lab hosts so far are Ubuntu 24.04. Install Docker with `sudo`, then start **Postgres + Redis** from compose. Install/configure **MySQL on the host** separately (`root` / `toor`, `bind-address = 0.0.0.0`, `skip_ssl` if Kali MariaDB clients fail TLS).
+Copy `machines/rz-db01` to the host (e.g. `/opt/rz-db01` or `/home/debian/rz-db01`). Lab hosts so far are Ubuntu 24.04. Install Docker with `sudo`, then start **Postgres + Redis** from compose.
 
 ```bash
 sudo apt-get update
@@ -33,7 +33,7 @@ sudo systemctl enable --now docker
 
 cd /opt/rz-db01
 cp .env.example .env
-# edit .env (POSTGRES_*), then start only postgres + redis if MySQL is on the host:
+# edit .env (POSTGRES_*), then start postgres + redis:
 sudo docker compose up -d --force-recreate postgres redis
 sudo docker compose ps
 ```
@@ -46,10 +46,9 @@ Postgres/Redis use **host networking** (no `ports:` mapping). They bind directly
 sudo docker inspect -f '{{.State.Health.Status}}' vulncorp-postgres vulncorp-redis
 sudo docker exec vulncorp-postgres psql -U vulncorp_user -d vulncorp_prod -c 'select version();'
 sudo docker exec vulncorp-redis redis-cli INFO server | head
-mysql -h 127.0.0.1 -u root -ptoor -e "SELECT VERSION();"
 ```
 
-Expected banners: PostgreSQL **11.2**, `redis_version:7.2.5`, MySQL **8.0.x**. Scan the host ports **3306**, **5432**, and **6379** with OpenVAS **Full and fast** and an updated Community feed (include 6379 explicitly; top-1000 can skip it).
+Expected banners: MySQL **8.0.x** with `root` / `root`, PostgreSQL **11.2**, `redis_version:7.2.5`. Scan ports **3306**, **5432**, and **6379** with OpenVAS **Full and fast** and an updated Community feed (include 6379 explicitly; top-1000 can skip it). Keep the Default Accounts family enabled.
 
 ---
 
@@ -57,7 +56,7 @@ Expected banners: PostgreSQL **11.2**, `redis_version:7.2.5`, MySQL **8.0.x**. S
 
 | Service | Port | Vulnerability |
 |---------|------|---------------|
-| **MySQL** (host) | `3306` | Default root credentials (`root` / `toor`), bound to `0.0.0.0` |
+| **MySQL** (host) | `3306` | Distro **8.0.x**, `root` / `root`, `mysql_native_password`, bound to `0.0.0.0`, SSL off |
 | **PostgreSQL** (Docker) | `5432` | Upstream **11.2**, superuser `vulncorp_user` / `vulncorp123`. Last build in the CVE-2019-9193 range OpenVAS matches (9.3 through 11.2) |
 | **Redis** (Docker) | `6379` | Upstream **7.2.5** (no password, `protected-mode no`). In the CVE-2024-31449 range OpenVAS matches (fixed in 7.2.6) |
 | **SSH** (host) | `22` | OpenSSH root login allowed |
@@ -68,20 +67,10 @@ Expected banners: PostgreSQL **11.2**, `redis_version:7.2.5`, MySQL **8.0.x**. S
 
 Replace `TARGET` with the host IP (e.g. `192.168.80.37` or `192.168.10.101`).
 
-### 1. MySQL — default credentials
-
-Kali often uses MariaDB client (`--ssl=0` if TLS errors):
+### 1. MySQL — default credentials (OpenVAS Community)
 
 ```bash
-mysql -h TARGET -u root -ptoor --ssl=0 -e "SELECT VERSION(), USER();"
-```
-
-Interactive:
-
-```bash
-mysql -h TARGET -u root -ptoor --ssl=0
-SHOW DATABASES;
-SELECT VERSION();
+mysql -h TARGET -u root -proot --ssl=0 -e "SELECT VERSION(), USER();"
 ```
 
 ### 2. PostgreSQL — CVE-2019-9193 (`COPY … PROGRAM`)
@@ -149,7 +138,5 @@ OpenVAS matches the **7.2.5** banner in the 7.2.0–7.2.5 range (fixed in 7.2.6)
 
 ## 🏆 Flags
 
-- **MySQL Default Creds Flag:** `secret_flags` table (`VULN{mysql_d3fault_cr3ds}`)
-- **PII Data Flag:** `/tmp/pii_flag.txt` (`VULN{pii_d4t4_3xfil}`)
 - **PostgreSQL RCE Flag:** `pg_flag` table (`VULN{pg_rce_4_th3_w1n}`)
 - **Root Flag:** `/root/root.txt` (`VULN{db_s3rv3r_r00t3d_m4ch1n3_4}`)

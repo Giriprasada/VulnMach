@@ -1,39 +1,10 @@
 # VulnCorp — Machine 4: rz-db01
-# MySQL/SSH: prefer host install for this lab. The rz-db01 image below is optional/legacy.
 # PostgreSQL 11.2 + Redis 7.2.5 stay in Docker with network_mode: host so:
 #   - same outbound reachability as the host (other lab machines)
 #   - banners on host :5432 / :6379 for OpenVAS (CVE-2019-9193 / CVE-2024-31449)
 # Copy .env.example to .env before starting. Do not commit .env.
+# MySQL runs on the host at :3306. This file starts only Postgres and Redis.
 services:
-  # Optional legacy MySQL+SSH container — not required when MySQL runs on the host.
-  rz-db01:
-    build: .
-    image: rz-db01-mysql:local
-    container_name: vulncorp-db01
-    hostname: vulncorp-db01
-    profiles: ["legacy-mysql"]
-    env_file:
-      - .env
-    environment:
-      VULNCORP_ENV: lab
-      MACHINE_IP: 172.16.0.10
-    ports:
-      - "0.0.0.0:2222:22"
-      - "0.0.0.0:3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    cap_add:
-      - SYS_PTRACE
-    security_opt:
-      - seccomp:unconfined
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" && pgrep sshd"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 40s
-    restart: unless-stopped
-
   # PostgreSQL 11.2 — last build in CVE-2019-9193 OpenVAS range (9.3–11.2).
   # network_mode: host → listens on host 0.0.0.0:5432 (banner = 11.2) + host routing.
   postgres:
@@ -84,4 +55,3 @@ services:
 
 volumes:
   postgres_data:
-  mysql_data:
