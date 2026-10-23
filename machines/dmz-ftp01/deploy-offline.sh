@@ -86,10 +86,20 @@ if command -v a2ensite >/dev/null 2>&1; then
 fi
 
 mkdir -p /etc/ssh/sshd_config.d
+cat > /etc/ssh/banner.txt << 'EOF'
+*************************************************************
+*  VulnCorp Internal Server — vulncorp-ftp01                *
+*  Authorized access only. All sessions are logged.         *
+*  Contact: it-support@vulncorp.local                       *
+*  Server: Debian 13 (Trixie)                               *
+*************************************************************
+EOF
+
 cat > /etc/ssh/sshd_config.d/99-vulncorp-lab.conf << 'EOF'
 PermitRootLogin yes
 PasswordAuthentication yes
 MaxAuthTries 10
+Banner /etc/ssh/banner.txt
 EOF
 
 bash "$ROOT_DIR/setup/setup_breadcrumbs.sh"

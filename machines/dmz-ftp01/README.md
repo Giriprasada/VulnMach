@@ -126,7 +126,12 @@ Include ports **21, 80, 2121, 6200**.
 - `/var/ftp/pub/keys/flag.txt` → `VULN{ssh_k3y_l3ak3d}`
 - `/root/root.txt` → `VULN{ftp_s3rv3r_r00t3d_m4ch1n3_3}`
 
-Optional user: `ftpuser` / `ftp123`
+## Credentials & SSH Access
+
+- **Root SSH:** `root` / `toor` (PermitRootLogin enabled, password authentication allowed)
+- **Lab FTP User:** `ftpuser` / `ftp123`
+- **SSH Banner:** Pre-auth banner active at `/etc/ssh/banner.txt` (reveals OS, hostname, contact)
+- **SSH Ciphers:** Restricted via `/etc/ssh/sshd_config.d/99-terrapin.conf` to clear Terrapin false positives in OpenVAS
 
 ---
 

@@ -42,12 +42,22 @@ a2ensite proftpd-lab.conf
 # Seed default index if missing
 [[ -f /var/www/html/index.html ]] || echo '<html><body>VulnCorp FTP Lab</body></html>' > /var/www/html/index.html
 
-# Weak SSH for lab (keep host login working)
+# Weak SSH for lab (keep host login working + banner exposed)
 mkdir -p /etc/ssh/sshd_config.d
+cat > /etc/ssh/banner.txt << 'EOF'
+*************************************************************
+*  VulnCorp Internal Server — vulncorp-ftp01                *
+*  Authorized access only. All sessions are logged.         *
+*  Contact: it-support@vulncorp.local                       *
+*  Server: Debian 13 (Trixie)                               *
+*************************************************************
+EOF
+
 cat > /etc/ssh/sshd_config.d/99-vulncorp-lab.conf << 'EOF'
 PermitRootLogin yes
 PasswordAuthentication yes
 MaxAuthTries 10
+Banner /etc/ssh/banner.txt
 EOF
 
 systemctl daemon-reload
