@@ -1,0 +1,13 @@
+[Unit]
+Description=Point GitLab at this host's current address
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/int-dev01/refresh-gitlab-ip.sh
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

@@ -1,9 +1,9 @@
 # VulnCorp — Machine 9: int-dev01
 # DEPLOY: git clone <repo> && cd int-dev01 && sudo ./deploy.sh
-# ACCESS: http://192.168.10.99        (GitLab)
-#         http://<VM_IP>:8080   (Jenkins — no auth)
-#         curl http://<VM_IP>:2375/version  (Docker API — no TLS!)
-#         ssh developer@<VM_IP> -p 2222     (developer/dev123)
+# ACCESS: http://<this host's current IP>/          (GitLab)
+#         http://<this host's current IP>:8080      (Jenkins — no auth)
+#         curl http://<this host's current IP>:2375/version
+# Start with ./up.sh so GitLab follows the DHCP address. Do not write that address into this file.
 # ⚠️  FOR EDUCATIONAL / LAB USE ONLY
 
 networks:
@@ -21,7 +21,6 @@ services:
     hostname: vulncorp-dev01
     privileged: true
     ports:
-      - "0.0.0.0:2222:22"       # SSH (developer/dev123)
       - "0.0.0.0:2375:2375"     # Docker API — NO TLS (vulnerability)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -42,11 +41,16 @@ services:
     ports:
       - "0.0.0.0:80:80"         # GitLab HTTP
     environment:
+      HOST_IP: ${HOST_IP}
       GITLAB_OMNIBUS_CONFIG: |
-        external_url 'http://192.168.10.99'
+        external_url "http://#{ENV['HOST_IP']}"
         gitlab_rails['initial_shared_runners_registration_token'] = 'disabled'
         nginx['listen_port'] = 80
         nginx['listen_https'] = false
+        puma['worker_processes'] = 0
+        sidekiq['max_concurrency'] = 5
+        prometheus_monitoring['enable'] = false
+        alertmanager['enable'] = false
     volumes:
       - gitlab_config:/etc/gitlab
       - gitlab_data:/var/opt/gitlab

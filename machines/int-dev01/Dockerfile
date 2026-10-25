@@ -37,7 +37,7 @@ RUN chmod +x /opt/setup/*.sh /entrypoint.sh
 # Bake in users/secrets/flags during image build
 RUN /opt/setup/setup_dev.sh
 
-EXPOSE 22 2375
+EXPOSE 2375
 
 ENTRYPOINT ["/entrypoint.sh"]
 

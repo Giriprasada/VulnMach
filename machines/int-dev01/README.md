@@ -2,9 +2,9 @@
 
 > ⚠️ **FOR EDUCATIONAL / LAB USE ONLY — NEVER EXPOSE TO THE INTERNET**
 
-Machine 9 runs on **Ubuntu 24.04 at `192.168.10.99`** (login user `debian`). It serves **GitLab CE 13.10.2 (CVE-2021-22205)**, **Jenkins 2.387.3 with authentication disabled**, and the **host Docker API on `0.0.0.0:2375`**.
+Machine 9 runs on **Ubuntu 24.04** (login user `debian`). It serves **GitLab CE 13.10.2 (CVE-2021-22205)** in Docker on port **80**, **Jenkins 2.387.3 with authentication disabled** in Docker on port **8080**, and the **host Docker API on `0.0.0.0:2375`**. SSH is only the host `sshd` on port **22**.
 
-GitLab’s `external_url` in `docker-compose.yml` is `http://192.168.10.99`. If the host IP changes, update that value and the addresses in this file, then recreate the GitLab container. A mismatch makes GitLab redirect browsers and version checks to the wrong host.
+Do not put the host address in `docker-compose.yml`. `up.sh` detects the current DHCP address, writes it to `.env` as `HOST_IP`, and GitLab uses that as `external_url`. After the address changes, run `up.sh` again.
 
 ---
 
@@ -12,7 +12,7 @@ GitLab’s `external_url` in `docker-compose.yml` is `http://192.168.10.99`. If 
 
 The account name is `debian`, but the OS is Ubuntu. Run package commands with `sudo`. Use Docker’s **Ubuntu** repository (`noble`). The API on port 2375 reports this host engine, because the lab container proxies `/var/run/docker.sock`.
 
-GitLab 13.10.2 needs about 4 GB of RAM and a few minutes before port 80 answers.
+GitLab 13.10.2 is started with one Puma process and monitoring off so a lab VM can serve the sign-in page without an 8 GB production install. It still needs a few minutes before port 80 answers, and it will use swap on a 4 GB VM.
 
 ```bash
 sudo bash machines/int-dev01/install-docker-ubuntu.sh
@@ -24,7 +24,7 @@ Copy this `machines/int-dev01` directory onto the host, then start it:
 
 ```bash
 cd /opt/int-dev01
-docker compose up -d --build
+sudo bash up.sh
 docker compose ps
 ```
 
@@ -53,7 +53,7 @@ Wait until `http://192.168.10.99` shows the sign-in page, then scan that address
 | **GitLab CE** | `80` | GitLab 13.10.2 | In the CVE-2021-22205 version range (fixed in 13.10.3). OpenVAS NVT `1.3.6.1.4.1.25623.1.0.147055` matches this build from the HTTP version |
 | **Jenkins** | `8080` | CI/CD Server | **Authentication Disabled** — Script Console allows instant system execution |
 | **Docker Engine API** | `2375` | TCP Socket | **No TLS & No Authentication** — Container escape & root host filesystem mount |
-| **SSH** | `2222` | OpenSSH | `developer`/`dev123` — avoids conflict with host SSH on port 22 |
+| **SSH** | `22` | Host OpenSSH only | Password login. Ciphers and MACs exclude Terrapin algorithms so that check does not match |
 
 ---
 
@@ -82,8 +82,8 @@ GitLab 13.10.2 sets a random root password on first boot and prints it in the co
 
 ### 4. SSH Access
 ```bash
-ssh developer@192.168.10.99 -p 2222
-# Password: dev123
+ssh developer@<this-host>
+# Password login on port 22
 ```
 
 ---

@@ -1,7 +1,8 @@
 // jenkins_disable_security.groovy
 // Disables Jenkins authentication and authorization on first startup.
-// This is intentionally insecure — FOR LAB USE ONLY (vulnerability demo).
+// This is intentionally insecure. FOR LAB USE ONLY (vulnerability demo).
 import jenkins.model.*
+import jenkins.install.InstallState
 import hudson.security.*
 
 def instance = Jenkins.getInstance()
@@ -10,8 +11,8 @@ def instance = Jenkins.getInstance()
 def strategy = new AuthorizationStrategy.Unsecured()
 instance.setAuthorizationStrategy(strategy)
 
-def realm = new HudsonPrivateSecurityRealm(false)
-instance.setSecurityRealm(realm)
+instance.setSecurityRealm(SecurityRealm.NO_AUTHENTICATION)
+instance.setInstallState(InstallState.INITIAL_SETUP_COMPLETED)
 
 instance.save()
 println "[vulncorp] Jenkins security DISABLED — Script Console accessible without auth"
