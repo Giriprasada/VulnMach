@@ -57,7 +57,7 @@ Expected banners: MySQL **8.0.x** with `root` / `root`, PostgreSQL **11.2**, `re
 | Service | Port | Vulnerability |
 |---------|------|---------------|
 | **MySQL** (host) | `3306` | Distro **8.0.x**, `root` / `root`, `mysql_native_password`, bound to `0.0.0.0`, SSL off |
-| **PostgreSQL** (Docker) | `5432` | Upstream **11.2**, superuser `vulncorp_user` / `vulncorp123`. Last build in the CVE-2019-9193 range OpenVAS matches (9.3 through 11.2) |
+| **PostgreSQL** (Docker) | `5432` | Upstream **11.2**, superuser `vulncorp_user` / `VulnCorp_Pg_11`. Password login (`md5`). Last build in the CVE-2019-9193 range OpenVAS matches (9.3 through 11.2). Do not upgrade past 11.2 or the check no longer matches. |
 | **Redis** (Docker) | `6379` | Upstream **7.2.5** (no password, `protected-mode no`). In the CVE-2024-31449 range OpenVAS matches (fixed in 7.2.6) |
 | **SSH** (host) | `22` | OpenSSH root login allowed |
 
@@ -79,7 +79,7 @@ Connect (superuser `vulncorp_user` — required for `COPY PROGRAM`):
 
 ```bash
 psql -h TARGET -U vulncorp_user -d vulncorp_prod
-# Password: vulncorp123
+# Password: VulnCorp_Pg_11
 ```
 
 Confirm version / superuser:
