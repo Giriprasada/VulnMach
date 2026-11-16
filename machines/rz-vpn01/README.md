@@ -8,7 +8,9 @@ Machine 5 is the VPN management server in the **Restricted Zone (`172.16.0.20`)*
 
 ## 🚀 Quick Start (One-Command Deploy)
 
-Run this on your **Ubuntu 24 VM** (`172.16.0.20`):
+Run this on **Ubuntu 24.04 LTS** instance `rzvpn01` (`172.16.0.20`).
+
+Spec services: Flask 3.0.x (Python 3.12.3), OpenVPN 2.6.9.
 
 ```bash
 git clone https://github.com/YOUR_GITHUB_USERNAME/webserver.git

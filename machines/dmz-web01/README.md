@@ -1,6 +1,8 @@
 # dmzweb01 — 192.168.20.29
 
-Host: `dmzweb01`, Debian 13. Login is the existing `debian` account. `192.168.20.32` was not changed.
+Host: `dmzweb01`, Ubuntu 24.04 LTS (ASPER Phase 1). Login is the existing `debian` account. `192.168.20.32` was not changed.
+
+Spec services: Flask 3.0.x on Python 3.11.2+, vsftpd 3.0.5, OpenSSH 9.2p1.
 
 App tree on the host: `/home/debian/Webserver/`. These scripts are unchanged and still run at image build:
 

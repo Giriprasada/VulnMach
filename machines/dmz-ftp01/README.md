@@ -7,6 +7,8 @@
 
 Default lab IP: `10.10.10.30` (example live host: `192.168.20.32`)
 
+Host OS for ASPER Phase 1: **Ubuntu 24.04 LTS**, instance `dmzftp01`. Spec packages: ProFTPD 1.3.5 with `mod_copy`, vsftpd 3.0.5, Apache 2.4.59. The port 21 unit in this folder is still the vsftpd 2.3.4 lab stub used for CVE-2011-2523.
+
 ---
 
 ## What to copy to the lab machine
@@ -51,7 +53,7 @@ You do **not** need to copy `Dockerfile` / `docker-compose.yml` for host offline
 
 ## Offline install (recommended for lab VMs)
 
-### 1) On a machine WITH internet (same OS/arch as lab — Debian amd64)
+### 1) On a machine WITH internet (same OS/arch as lab — Ubuntu 24.04 amd64)
 
 ```bash
 cd machines/dmz-ftp01

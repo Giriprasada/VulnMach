@@ -1,4 +1,6 @@
-# 🏢 Machine 12 — int-ws01 (Domain-Joined Windows Workstation)
+# int-win10-01 (folder `int-ws01`) — Domain-Joined Windows 10
+
+ASPER Phase 1: Windows 10, SMBv1, Print Spooler 10.0, Remote Desktop 10.0.
 
 > ⚠️ **FOR EDUCATIONAL / LAB USE ONLY**
 

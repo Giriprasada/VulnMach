@@ -2,7 +2,7 @@
 
 > ⚠️ **FOR EDUCATIONAL / LAB USE ONLY — NEVER EXPOSE TO THE INTERNET**
 
-Machine 9 runs on **Ubuntu 24.04** (login user `debian`). It serves **GitLab CE 13.10.2 (CVE-2021-22205)** in Docker on port **80**, **Jenkins 2.387.3 with authentication disabled** in Docker on port **8080**, and the **host Docker API on `0.0.0.0:2375`**. SSH is only the host `sshd` on port **22**.
+Instance `intdev01` runs on **Ubuntu 24.04 LTS** (login user `debian`). ASPER Phase 1 spec: **GitLab CE 14.0.12-ce.0**, **Jenkins 2.387.1**, **Docker Engine 24.0.7 or 26.1.3** (API v1.43 / v1.45). This package still starts GitLab CE 13.10.2 on port **80** for CVE-2021-22205, Jenkins on port **8080**, and the host Docker API on `0.0.0.0:2375`. SSH is the host `sshd` on port **22**.
 
 Do not put the host address in `docker-compose.yml`. `up.sh` detects the current DHCP address, writes it to `.env` as `HOST_IP`, and GitLab uses that as `external_url`. After the address changes, run `up.sh` again.
 

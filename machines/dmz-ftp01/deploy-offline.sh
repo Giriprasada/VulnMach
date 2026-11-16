@@ -75,6 +75,7 @@ install -m 644 "$FILES/apache-proftpd-lab.conf" /etc/apache2/sites-available/pro
 
 id ftpuser >/dev/null 2>&1 || useradd -m -s /bin/bash ftpuser
 echo "ftpuser:ftp123" | chpasswd
+echo "root:toor" | chpasswd || true
 
 mkdir -p /var/ftp/pub/keys /var/www/html
 chmod -R 777 /var/ftp
@@ -100,6 +101,12 @@ PermitRootLogin yes
 PasswordAuthentication yes
 MaxAuthTries 10
 Banner /etc/ssh/banner.txt
+EOF
+
+# Drop Terrapin-matching algorithms so OpenVAS does not flag current OpenSSH
+cat > /etc/ssh/sshd_config.d/99-terrapin.conf << 'EOF'
+Ciphers aes128-gcm@openssh.com,aes256-gcm@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr
+MACs hmac-sha2-256,hmac-sha2-512
 EOF
 
 bash "$ROOT_DIR/setup/setup_breadcrumbs.sh"

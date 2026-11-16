@@ -18,7 +18,7 @@ PostgreSQL and Redis use pinned images. Copy `.env.example` to `.env` and set Po
 
 ## Deploy on the lab host
 
-Copy `machines/rz-db01` to the host (e.g. `/opt/rz-db01` or `/home/debian/rz-db01`). Lab hosts so far are Ubuntu 24.04. Install Docker with `sudo`, then start **Postgres + Redis** from compose.
+Copy `machines/rz-db01` to the host (e.g. `/opt/rz-db01` or `/home/debian/rz-db01`). ASPER Phase 1 instance `rzdb01` is **Ubuntu 24.04 LTS**, deployed as **3 VMs**. Spec packages: MySQL Community 8.0.36, PostgreSQL 16.2, Redis 7.0.15 or 7.2.4. This folder still pins PostgreSQL **11.2** and Redis **7.2.5** so the OpenVAS version checks below still match. Install Docker with `sudo`, then start **Postgres + Redis** from compose.
 
 ```bash
 sudo apt-get update

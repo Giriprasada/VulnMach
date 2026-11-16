@@ -8,20 +8,26 @@ Every machine in the VulnCorp Enterprise testbed is organized as a self-containe
 
 ## 🗺️ Master Machine Index
 
-| # | Folder | Target VM Hostname | Zone | OS | SSH Port | Quick Deploy Command |
-|---|--------|--------------------|------|----|----------|----------------------|
-| 1 | `../` *(root)* | `vulncorp-web01` | DMZ (`10.10.10.10`) | Debian 13 | 2222 | `sudo ./deploy.sh` |
-| 2 | `dmz-mail01/` | `vulncorp-mail01` | DMZ (`10.10.10.20`) | Debian 13 | 2222 | `sudo ./deploy.sh` |
-| 3 | `dmz-ftp01/` | `vulncorp-ftp01` | DMZ (`10.10.10.30`) | Debian 13 | 22 (host) | `sudo ./deploy.sh` **(host / docker-less)** |
-| 4 | `rz-db01/` | `vulncorp-db01` | Restricted (`172.16.0.10`) | Ubuntu 24 | 2222 | `sudo ./deploy.sh` |
-| 5 | `rz-vpn01/` | `vulncorp-vpn01` | Restricted (`172.16.0.20`) | Ubuntu 24 | 2222 | `sudo ./deploy.sh` |
-| 6 | `rz-monitor01/` | `vulncorp-monitor01` | Restricted (`172.16.0.30`) | Debian 13 | 2222 | `sudo ./deploy.sh` |
-| 7 | `int-dc01/` | `VULNCORP-DC01` | Internal (`192.168.1.10`) | Win Server 2019 | 3389 (RDP) | `.\deploy_dc.ps1` *(PowerShell Admin)* |
-| 8 | `int-erp01/` | `vulncorp-erp01` | Internal (`192.168.1.20`) | Ubuntu 24 | 2222 | `sudo ./deploy.sh` |
-| 9 | `int-dev01/` | `vulncorp-dev01` | Internal (`192.168.1.30`) | Ubuntu 24 | 2222 | `sudo ./deploy.sh` |
-| 10 | `int-files01/` | `VULNCORP-FILES01` | Internal (`192.168.1.40`) | Debian 13 | 2222 | `sudo ./deploy.sh` |
-| 11 | `int-backup01/` | `vulncorp-backup01` | Internal (`192.168.1.50`) | Debian 13 | 2222 | `sudo ./deploy.sh` |
-| 12 | `int-ws01/` | `VULNCORP-WS01` | Internal (`192.168.1.60`) | Win 10 / Debian 13 | 2222 (Docker) / 3389 (RDP) | `sudo ./deploy.sh` *(Docker)* or `.\deploy_ws.ps1` *(PowerShell Admin)* |
+ASPER Tool Testing Phase 1 pilot. Host OS and service versions below are the testbed spec. IPs stay lab placeholders.
+
+| # | Folder | Spec instance | Zone | OS | Spec services |
+|---|--------|---------------|------|----|---------------|
+| — | *(workstation, not in this repo)* | Scan-Agent ×3 (DMZ, Internal, Restricted) | Zones 1–3 | Ubuntu 24.04 LTS | Docker Engine (latest), OpenVAS / GVM (latest). RAM 8–16 GB, disk 50–100 GB |
+| 1 | `../` *(root)* | `dmzweb01` | DMZ | Ubuntu 24.04 LTS | Flask 3.0.x (Python 3.11.2+), vsftpd 3.0.5, OpenSSH 9.2p1 |
+| 2 | `dmz-mail01/` | `dmzmail01` | DMZ | Ubuntu 24.04 LTS | Postfix 3.7.11, Dovecot 2.3.19.1, Roundcube 1.4.14, Apache 2.4.59 |
+| 3 | `dmz-ftp01/` | `dmzftp01` | DMZ | Ubuntu 24.04 LTS | ProFTPD 1.3.5 + `mod_copy`, vsftpd 3.0.5, Apache 2.4.59 |
+| 4 | `int-dc01/` | `intdc01` | Internal | Windows Server 2019 | AD DS / Kerberos, SMB 2/3 and SMBv1, RDP 10.0 |
+| 5 | `int-erp01/` | `interp01` | Internal | Ubuntu 24.04 LTS | Flask ERP 3.0.x (Python 3.12.3), PostgreSQL 16.2, MS SQL Server 2017/2019 (sim) |
+| 6 | `int-dev01/` | `intdev01` | Internal | Ubuntu 24.04 LTS | GitLab CE 14.0.12-ce.0, Jenkins 2.387.1, Docker Engine 24.0.7 or 26.1.3 (API 1.43 / 1.45) |
+| 7 | `int-files01/` | `intfiles01` | Internal | Debian 13 | Samba 4.17.12 or 4.18.0, nfs-kernel-server 2.6.2 |
+| 8 | `int-ws01/` | `int-win10-01` | Internal | Windows 10 | SMBv1, Print Spooler 10.0, RDP 10.0 |
+| 9 | `rz-db01/` | `rzdb01` (3 instances) | Restricted | Ubuntu 24.04 LTS | MySQL Community 8.0.36, PostgreSQL 16.2, Redis 7.0.15 or 7.2.4 |
+| 10 | `rz-vpn01/` | `rzvpn01` | Restricted | Ubuntu 24.04 LTS | Flask VPN admin 3.0.x (Python 3.12.3), OpenVPN 2.6.9 |
+| — | *(not in this repo)* | `VM-Attacker` | Attacker | Kali Linux (latest) | MITRE Caldera (latest) |
+| — | `rz-monitor01/` | extra lab host, not in the Phase 1 VM list | Restricted | Debian 13 | optional |
+| — | `int-backup01/` | extra lab host, not in the Phase 1 VM list | Internal | Debian 13 | optional |
+
+Zone counts in the spec: DMZ 4 (3 servers + Scan-Agent), Internal 6 (5 servers + Scan-Agent), Restricted 5 (`rzdb01` ×3, `rzvpn01`, Scan-Agent), Management = ASPER workstations, Attacker 1. Linux log agents are Filebeat, Auditbeat, and Packetbeat; Windows uses Winlogbeat. ASPER deploys those agents. Phase 2 target is at least 100 VMs.
 
 ---
 

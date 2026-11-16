@@ -8,7 +8,9 @@ Machine 10 is an internal storage server in the **Internal Zone (`192.168.1.40`)
 
 ## 🚀 Quick Start (One-Command Deploy)
 
-Run this on your **Debian 13 VM** (`192.168.1.40`):
+Run this on **Debian 13** instance `intfiles01` (`192.168.1.40`).
+
+Spec services: Samba 4.17.12 or 4.18.0, nfs-kernel-server 2.6.2.
 
 ```bash
 git clone https://github.com/YOUR_GITHUB_USERNAME/webserver.git

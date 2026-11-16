@@ -8,7 +8,9 @@ Machine 2 in the VulnCorp Enterprise testbed simulates a corporate mail server i
 
 ## 🚀 Quick Start (One-Command Deploy)
 
-Run this on your **Debian 13 VM** (`10.10.10.20`):
+Run this on your **Ubuntu 24.04 LTS VM** `dmzmail01` (`10.10.10.20`).
+
+Spec services: Postfix 3.7.11, Dovecot 2.3.19.1, Roundcube 1.4.14, Apache 2.4.59.
 
 ```bash
 # Clone the repository

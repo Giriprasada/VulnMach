@@ -8,7 +8,9 @@ Machine 8 is an enterprise resource planning server in the **Internal Zone (`192
 
 ## 🚀 Quick Start (One-Command Deploy)
 
-Run this on your **Ubuntu 24 VM** (`192.168.1.20`):
+Run this on **Ubuntu 24.04 LTS** instance `interp01` (`192.168.1.20`).
+
+Spec services: Flask 3.0.x (Python 3.12.3), PostgreSQL 16.2, Microsoft SQL Server 2017 or 2019 (simulated).
 
 ```bash
 git clone https://github.com/YOUR_GITHUB_USERNAME/webserver.git
